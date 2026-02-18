@@ -1,0 +1,45 @@
+@startuml Task1-DFD-1-Registration
+!theme plain
+title DFD: Регистрация пациента (Patient Registration)
+
+skinparam defaultFontSize 11
+skinparam rectangle {
+  roundCorner 12
+  backgroundColor #E8F4FD
+}
+skinparam database {
+  backgroundColor #FFF4E6
+}
+
+actor "Пациент\n(Patient)" as Patient
+actor "Ресепшен\n" as Admin
+
+rectangle "1.2\nНайти пациента\nв списке" as P2 #E8F4FD
+rectangle "1.3\nВнести/обновить\nданные пациента" as P3 #E8F4FD
+rectangle "1.4\nСохранить доп. файлы\n(сканы, согласия)" as P4 #E8F4FD
+
+database "patients.xlsx\n(сетевой диск)" as D1
+database "patients/\npacient-FIO-BD\n(папка пациента)" as D2
+
+Patient --> Admin : ФИО, телефон,\nпаспортные данные
+Patient --> Admin : доп. данные:\nистория болезни,\nместо жительства
+Patient --> Admin : сканы: опросник,\nпаспорт, согласие\nна вмешательство
+
+
+' Internal flows
+Admin --> P2 : данные для поиска
+Admin --> P4 : сканы: опросник,\nпаспорт, согласие\nна вмешательство
+
+P2 --> P3 : пациент не найден\nили обновление
+P3 --> P4 : идентификатор\nпапки (FIO-BD)
+
+
+' Process -> Data store (read)
+P2 --> D1 : открыть, поиск
+D1 --> P2 : список пациентов
+
+' Process -> Data store (write)
+P3 --> D1 : запись нового\nпациента
+P4 --> D2 : сохранение\nфайлов (excel, png)
+
+@enduml

@@ -1,0 +1,39 @@
+@startuml C4-Container-Classification-Engine
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title C4 Container Diagram (C2): Движок классификации данных перед загрузкой в хранилище
+
+' Внешние системы (источники данных, подсистема согласий, хранилище)
+System_Ext(sources, "Источники данных", "Операционные БД (PostgreSQL), выгрузки, файлы. Структуры данных подвержены изменениям, данные не размечены по конфиденциальности.")
+System_Ext(consent_svc, "Подсистема проверки согласий", "Проверка согласия субъекта на обработку для цели «аналитика»")
+System_Ext(warehouse, "Аналитическое хранилище данных", "Зоны: Landing, Silver (по классам), Gold (обезличенные), Quarantine. Шифрование, RBAC, аудит.")
+System_Ext(tag_store, "Реестр тегов и политик PostgreSQL / Ranger", "Теги по полям и версиям схемы. Политики маскирования и правила доступа по зонам. Версионирование.")
+
+' Граница системы: движок классификации и загрузки
+Container_Boundary(engine, "Движок классификации данных перед загрузкой в хранилище (Privacy by Design)") {
+
+    Container(ingest, "Приём пакетов", "API / Kafka / S3", "Приём файлов (Parquet, CSV, JSON) и сообщений. Буферизация, schema-on-read. Поддержка изменяющихся структур.")
+    Container(schema_disc, "Обнаружение и версионирование схемы", "Schema Discovery", "Выявление структуры (поля, типы), версия схемы (schema_id), детекция новых/удалённых/переименованных полей.")
+    Container(classifier, "Классификатор", "Rules + ML/паттерны", "Присвоение класса конфиденциальности (PII, PHI, FIN, USR) полям. Работа с неразмеченными данными: эвристики, тег unclassified при низкой уверенности.")
+    Container(consent_check, "Проверка согласий", "Consent Check Adapter", "Проверка согласия перед загрузкой в аналитику. Фильтрация записей без согласия. Вызов подсистемы согласий.")
+    Container(transform, "Трансформация и маскирование", "Transform & Mask", "Применение политик по тегам: удаление идентификаторов, псевдонимизация, агрегация. Для unclassified — консервативная политика.")
+    Container(loader, "Загрузчик в хранилище", "Warehouse Loader", "Маршрутизация по классу и политике в зоны (Silver/Gold/Quarantine). Идемпотентность, повторная обработка при сбоях.")
+}
+
+' Связи с внешними системами
+Rel(sources, ingest, "Пакеты данных\n(изменяющиеся схемы, без разметки)")
+Rel(ingest, schema_disc, "Нормализованный поток")
+Rel(schema_disc, classifier, "Актуальная схема")
+Rel(classifier, tag_store, "Запрос/обновление тегов и политик")
+Rel(tag_store, classifier, "Теги, политики по полям/схемам")
+Rel(consent_check, consent_svc, "Проверка согласия\nна цель «аналитика»")
+Rel(classifier, consent_check, "Классифицированный поток\n(идентификаторы для проверки)")
+Rel(consent_check, transform, "Отфильтрованный поток с тегами\n(только с согласием)")
+Rel(tag_store, transform, "Политики маскирования")
+Rel(transform, loader, "Обезличенные/замаскированные данные")
+Rel(loader, warehouse, "Загрузка в зоны\n(Landing → Silver/Gold/Quarantine)")
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+@enduml

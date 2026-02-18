@@ -1,0 +1,45 @@
+@startuml Task1-DFD-4-Payment
+!theme plain
+title DFD: Оплата услуг (Payment for Services)
+
+skinparam defaultFontSize 11
+skinparam rectangle {
+  roundCorner 12
+  backgroundColor #E8F4FD
+}
+skinparam database {
+  backgroundColor #FFF4E6
+}
+
+actor "Пациент\n(Patient)" as Patient
+actor "Ресепшен\n" as Admin
+actor "Кассир" as Cassir
+
+rectangle "4.1\nВыписать талон\nна оплату" as P1 #E8F4FD
+rectangle "4.2\nСформировать счёт,\nпринять оплату" as P2 #E8F4FD
+
+database "journals/\ndoctor-fio\n(журнал осмотров)" as D1
+database "bills/\npatient-fio.xlsx\n(счета, платежи)" as D2
+database "1С\nБухгалтерия" as D3
+
+' Admin (reception)
+Admin --> P1: данные пациента,\n список посещенных докторов
+P1 --> D1 : возможно: просмотр\nосмотров за период
+D1 --> P1 : состоявшиеся осмотры
+
+P1 --> D2 : возможно: создать\nзапись о платеже
+P1 --> Patient : талон на оплату
+
+' Patient -> Cashier
+Patient --> Cassir: талон на оплату
+Cassir --> P2 : талон
+
+' Cashier
+P2 --> D2 : возможно: просмотр\nbills/patient-fio.xlsx
+D2 --> P2 : данные по счетам
+P2 --> D2 : или ввод вручную\nс талона
+
+P2 --> D3 : данные по оплате
+Patient --> P2 : оплата счёта
+
+@enduml

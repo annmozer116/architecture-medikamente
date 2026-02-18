@@ -1,0 +1,60 @@
+@startuml Task1-DFD-5-LabTests-ToBe
+!theme plain
+title DFD To-Be: Сдача анализов (с мерами безопасности из Task1.md)
+
+skinparam defaultFontSize 11
+skinparam rectangle {
+  roundCorner 12
+  backgroundColor #E8F4FD
+}
+skinparam database {
+  backgroundColor #FFF4E6
+}
+
+actor "Пациент\n(Patient)" as Patient
+actor "Лаборатория\n(API, TLS)" as Lab
+actor "Медсестра\n(RBAC)" as Med
+
+rectangle "5.1\nОткрыть данные\nпациента" as P1 #E8F4FD
+rectangle "5.2\nСоздать заявку\n(минимальные данные)" as P2 #E8F4FD
+rectangle "5.3\nПолучить штрихкод,\nоформить пробирку" as P3 #E8F4FD
+rectangle "5.4\nПринять результаты\nпо API, сохранить" as P4 #E8F4FD
+rectangle "Проверка прав\n(RBAC: врачи, медсёстры)" as RBAC #D4EDDA
+rectangle "Аудит доступа\nк результатам" as Audit #FFF3CD
+
+database "Данные пациента\n(БД, TDE)" as D1
+database "Результаты анализов\n(хранилище, шифрование,\nтег PHI)" as D2
+database "Лог аудита\n(доступ к PHI)" as D3
+
+Patient --> Med : приход в медкабинет\nФИО, дата рождения
+Med --> RBAC : запрос операции
+RBAC --> P1 : права проверены
+RBAC --> P2 : права проверены
+RBAC --> P4 : права проверены
+
+Med --> P1 : приход в медкабинет
+P1 --> D1 : открыть (TLS)
+D1 --> P1 : ФИО, телефон,\nпочта (минимально необходимые)
+
+P1 --> P2 : данные пациента
+P2 --> Lab : заявка в лабораторию\n(минимальные данные:\nФИО, телефон, почта)\nпо API, аутентификация, TLS
+Lab --> P3 : штрихкод
+
+P3 --> Med : штрихкод
+Med --> Patient : пробирка с штрихкодом
+Patient --> Lab : сдача анализа\n(пробирка)
+
+Lab --> P4 : результаты\n(API, TLS, защищённый контур)
+P4 --> D2 : сохранение\n(шифрование, тег PHI)
+
+P1 --> Audit : доступ к данным пациента
+P4 --> Audit : запись результатов
+Audit --> D3 : лог
+
+note bottom of D2
+  В лабораторию — только минимально необходимые данные по защищённому каналу (API + TLS).
+  Результаты принимаются только в защищённый контур (API вместо почты).
+  Доступ к результатам — только врачи и медсёстры по ролям; при экспорте в BI — только обезличенные/агрегированные.
+end note
+
+@enduml

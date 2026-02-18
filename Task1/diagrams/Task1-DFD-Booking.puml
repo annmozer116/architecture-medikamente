@@ -1,0 +1,46 @@
+@startuml Task1-DFD-2-Booking
+!theme plain
+title DFD: Запись пациента к специалисту (Booking to Specialist)
+
+skinparam defaultFontSize 11
+skinparam rectangle {
+  roundCorner 12
+  backgroundColor #E8F4FD
+}
+skinparam database {
+  backgroundColor #FFF4E6
+}
+
+actor "Пациент\n(Patient)" as Patient
+actor "Репесшен" as Admin
+
+rectangle "2.2\nНайти пациента\nв списке" as P2 #E8F4FD
+rectangle "2.3\nПросмотреть расписание\nврача" as P3 #E8F4FD
+rectangle "2.4\nЗафиксировать запись\n(ФИО, телефон)" as P4 #E8F4FD
+
+database "patients.xlsx\n(сетевой диск)" as D1
+database "journals/\ndoctor-fio\n(журнал врача)" as D2
+
+Patient --> Admin : ФИО, телефон,\nпаспортные данные
+
+Admin --> P2: данные пациента
+
+P2 --> D1 : открыть, поиск
+D1 --> P2 : данные пациента
+
+P2 --> P3 : пациент найден
+
+P3 --> D2 : открыть журнал\nврача
+D2 --> P3 : записи, свободные окна
+
+P3 --> P4 : выбранное окно
+
+P4 --> D2 : запись к врачу\n(ФИО, тел.)
+
+note right of D2
+  **Риск:** коллизии при
+  одновременной работе
+  нескольких администраторов
+end note
+
+@enduml
