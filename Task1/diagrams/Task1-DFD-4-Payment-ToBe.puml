@@ -1,0 +1,60 @@
+@startuml Task1-DFD-4-Payment-ToBe
+!theme plain
+title DFD To-Be: Оплата услуг (с мерами безопасности из Task1.md)
+
+skinparam defaultFontSize 11
+skinparam rectangle {
+  roundCorner 12
+  backgroundColor #E8F4FD
+}
+skinparam database {
+  backgroundColor #FFF4E6
+}
+
+actor "Пациент\n(Patient)" as Patient
+actor "Ресепшен\n(RBAC)" as Admin
+actor "Кассир\n(только операции по оплате)" as Cassir
+
+rectangle "4.1\nВыписать талон\nна оплату" as P1 #E8F4FD
+rectangle "4.2\nСформировать счёт,\nпринять оплату" as P2 #E8F4FD
+rectangle "Проверка прав\n(RBAC)" as RBAC #D4EDDA
+rectangle "Аудит операций\nс платежами" as Audit #FFF3CD
+
+database "Журнал осмотров\n(доступ по ролям)" as D1
+database "Счета и платежи\n(шифрование, тег FIN;\nне вместе с медданными)" as D2
+database "1С Бухгалтерия\n(защищённый канал\nTLS/API)" as D3
+database "Лог аудита\n(платежи)" as D4
+
+Admin --> RBAC : запрос операции
+RBAC --> P1 : права проверены
+Cassir --> RBAC : запрос операции
+RBAC --> P2 : права проверены\n(кассир: только оплата)
+
+Admin --> P1 : данные пациента,\nсписок посещённых докторов
+P1 --> D1 : просмотр осмотров\nза период
+D1 --> P1 : состоявшиеся осмотры
+
+P1 --> D2 : создать запись\nо платеже
+P1 --> Patient : талон на оплату
+
+Patient --> Cassir : талон на оплату
+Cassir --> P2 : талон
+
+P2 --> D2 : просмотр/ввод\n(доступ по роли)
+D2 --> P2 : данные по счетам
+P2 --> D2 : фиксация оплаты
+
+P2 --> D3 : данные по оплате\n(TLS/API)
+Patient --> P2 : оплата счёта
+
+P1 --> Audit : событие
+P2 --> Audit : событие оплаты
+Audit --> D4 : лог
+
+note bottom of D2
+  Шифрование при хранении и при передаче в 1С.
+  Разделение прав: доступ к истории платежей пациента — по роли и с аудитом.
+  Теги FIN на платёжные сущности.
+end note
+
+@enduml

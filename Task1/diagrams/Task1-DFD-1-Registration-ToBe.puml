@@ -1,0 +1,58 @@
+@startuml Task1-DFD-1-Registration-ToBe
+!theme plain
+title DFD To-Be: Регистрация пациента (с мерами безопасности из Task1.md)
+
+skinparam defaultFontSize 11
+skinparam rectangle {
+  roundCorner 12
+  backgroundColor #E8F4FD
+}
+skinparam database {
+  backgroundColor #FFF4E6
+}
+
+actor "Пациент\n(Patient)" as Patient
+actor "Ресепшен\n(RBAC)" as Admin
+
+rectangle "1.2\nНайти пациента\n(поиск с маскированием\nдля ролей без полного доступа)" as P2 #E8F4FD
+rectangle "1.3\nВнести/обновить\nданные пациента" as P3 #E8F4FD
+rectangle "1.4\nСохранить доп. файлы\n(сканы, согласия)" as P4 #E8F4FD
+rectangle "Проверка прав\n(RBAC)" as RBAC #D4EDDA
+rectangle "Аудит доступа\nи изменений" as Audit #FFF3CD
+
+database "Реестр пациентов\n(БД, TDE, теги PII)" as D1
+database "Хранилище сканов\n(S3, AES-256,\nтег document_scan)" as D2
+database "Лог аудита\n(доступ к ПДн)" as D3
+
+Patient --> Admin : ФИО, телефон,\nпаспортные данные
+Patient --> Admin : доп. данные:\nистория болезни,\nместо жительства
+Patient --> Admin : сканы: опросник,\nпаспорт, согласие\nна вмешательство
+
+Admin --> RBAC : запрос операции
+RBAC --> P2 : права проверены\n(ресепшен: поля для поиска/записи)
+RBAC --> P3 : права проверены
+RBAC --> P4 : права проверены
+
+Admin --> P2 : данные для поиска
+Admin --> P4 : сканы: опросник,\nпаспорт, согласие\nна вмешательство
+
+P2 --> P3 : пациент не найден\nили обновление
+P3 --> P4 : идентификатор\nпапки (FIO-BD)
+
+P2 --> D1 : поиск (через API,\nTLS)
+D1 --> P2 : список пациентов\n(маскирование по роли)
+P3 --> D1 : запись нового\nпациента (теги PII)
+P4 --> D2 : сохранение файлов\n(шифрование)
+
+P2 --> Audit : событие доступа
+P3 --> Audit : событие изменения
+P4 --> Audit : событие записи
+Audit --> D3 : запись лога
+
+note bottom of D1
+  Шифрование при хранении (TDE);
+  тегирование полей (PII_direct, PII_indirect);
+  каталог данных при миграции
+end note
+
+@enduml

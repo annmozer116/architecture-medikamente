@@ -1,0 +1,56 @@
+@startuml Task1-DFD-2-Booking-ToBe
+!theme plain
+title DFD To-Be: Запись пациента к специалисту (с мерами безопасности из Task1.md)
+
+skinparam defaultFontSize 11
+skinparam rectangle {
+  roundCorner 12
+  backgroundColor #E8F4FD
+}
+skinparam database {
+  backgroundColor #FFF4E6
+}
+
+actor "Пациент\n(Patient)" as Patient
+actor "Ресепшен\n(RBAC)" as Admin
+
+rectangle "2.2\nНайти пациента\n(минимальные поля\nдля идентификации)" as P2 #E8F4FD
+rectangle "2.3\nПросмотреть расписание\nврача" as P3 #E8F4FD
+rectangle "2.4\nЗафиксировать запись\n(транзакция/блокировка)" as P4 #E8F4FD
+rectangle "Проверка прав\n(RBAC)" as RBAC #D4EDDA
+rectangle "Аудит" as Audit #FFF3CD
+
+database "Реестр пациентов\n(БД, TDE)" as D1
+database "Журнал записей\n(минимальные идентификаторы:\nФамилия, Имя, дата рожд.;\nблокировки при записи,\nтег PII)" as D2
+database "Лог аудита\n(кто кого записал, когда)" as D3
+
+Patient --> Admin : ФИО, телефон,\nпаспортные данные
+
+Admin --> RBAC : запрос операции
+RBAC --> P2 : права проверены
+RBAC --> P3 : права проверены
+RBAC --> P4 : права проверены
+
+Admin --> P2 : данные пациента
+
+P2 --> D1 : поиск (TLS)
+D1 --> P2 : данные пациента\n(минимально необходимые)
+
+P2 --> P3 : пациент найден
+
+P3 --> D2 : открыть журнал\n(блокировка слота)
+D2 --> P3 : записи, свободные окна\n(без полных ПДн в общем виде)
+
+P3 --> P4 : выбранное окно
+
+P4 --> D2 : запись к врачу\n(транзакция, минимальные идентификаторы)
+P4 --> Audit : событие записи
+Audit --> D3 : лог
+
+note right of D2
+  Коллизии устранены: транзакции/блокировки.
+  Полные ПДн — по запросу, отдельный экран с проверкой прав.
+  Тегирование записей PII; не экспортировать без обезличивания.
+end note
+
+@enduml

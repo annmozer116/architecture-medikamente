@@ -1,0 +1,46 @@
+@startuml Task1-DFD-5-LabTests
+!theme plain
+title DFD: Сдача анализов (Lab Tests)
+
+skinparam defaultFontSize 11
+skinparam rectangle {
+  roundCorner 12
+  backgroundColor #E8F4FD
+}
+skinparam database {
+  backgroundColor #FFF4E6
+}
+
+actor "Пациент\n(Patient)" as Patient
+actor "Лаборатория\n(External Lab)" as Lab
+actor "Медсестра\n" as Med
+
+rectangle "5.1\nОткрыть данные\nпациента" as P1 #E8F4FD
+rectangle "5.2\nСоздать заявку\nв лаборатории" as P2 #E8F4FD
+rectangle "5.3\nПолучить штрихкод,\nоформить пробирку" as P3 #E8F4FD
+rectangle "5.4\nРазобрать почту,\nсохранить результаты" as P4 #E8F4FD
+
+database "patients/\npacient-FIO-BD" as D1
+database "laboratory/\nDATE\n(результаты)" as D2
+database "Почта\nклиники" as D3
+
+Patient --> Med: приход в медкабинет\n, ФИО, дата рождения
+Med --> P1 : приход в медкабинет
+
+P1 --> D1 : открыть файл\nпациента
+D1 --> P1 : ФИО, телефон,\nпочта, др.
+
+P1 --> P2 : данные пациента
+P2 --> Lab : запись в лабораторию:\nФИО, телефон, почта
+Lab --> P3 : штрихкод
+
+P3 --> Med: Штрихкод
+Med --> Patient: пробирка с штрихкодом
+Patient --> Lab : сдача анализа\n(пробирка)
+
+Lab --> D3 : результаты\nна почту
+D3 --> P4 : письма с\nрезультатами
+Med --> P4: возможно
+P4 --> D2 : сохранение файлов\nв laboratory/DATE
+
+@enduml

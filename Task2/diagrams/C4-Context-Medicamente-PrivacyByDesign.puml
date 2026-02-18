@@ -1,0 +1,50 @@
+@startuml C4-Context-Medicamente-PrivacyByDesign
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title C4 Context Diagram: Medicamente Target Architecture with Privacy by Design
+
+' ============== PEOPLE ==============
+Person(patient, "Patient", "Клиент: запись к врачу, просмотр своих данных, управление согласиями")
+Person(staff, "Staff", "Сотрудники: ресепшен, врачи, кассиры, медсёстры")
+Person(analyst, "Business Analyst", "Бизнес-аналитик: отчёты, BI, аналитика на обезличенных данных")
+
+' ============== AUTHENTICATION & IAM ==============
+System(auth, "Authentication & IAM", "Единая точка входа: аутентификация пациентов (IAM пациента, профиль, согласия) и сотрудников (IAM сотрудника, RBAC/ABAC). 2FA/MFA, выдача и проверка токенов, rate limit. Обогащение запроса и передача в Core.")
+
+' ============== CORE BUSINESS SYSTEMS ==============
+System(core, "Medicamente Core", "Единая система: порталы (клиент, ресепшен), CRM, записи, медкарты, интеграция с оплатой и лабораторией. Обрабатывает только данные, разрешённые Consent и помеченные Classification.")
+
+' ============== PRIVACY BY DESIGN BLOCKS ==============
+System(consent, "Consent & Privacy\nPolicy Management", "PbD: учёт согласий по целям, отзыв, прозрачность (политика обработки), сроки хранения. Гарантирует правомерность и контроль субъекта данных.")
+System(classification, "Data Classification\n& Tagging", "PbD: теги PII/PHI/FIN/USR при создании данных, проверка при доступе и передаче. Минимизация и изоляция по категориям.")
+System(audit, "Audit & Compliance\nMonitoring", "PbD: логирование доступа к чувствительным данным, обнаружение аномалий, алерты при несанкционированном доступе. Видимость на всём жизненном цикле.")
+
+' ============== ANALYTICAL LAYER (Privacy-Preserving) ==============
+System(analytics, "Privacy-Preserving\nAnalytics Platform", "Аналитический слой: приём только обезличенных/агрегированных данных из Core. Озеро данных, BI, ML/AI на де-идентифицированных данных. Доступ по ролям и аудит. Соответствует PbD и минимизации.")
+
+' ============== EXTERNAL SYSTEMS ==============
+System_Ext(lab, "Laboratory", "Внешняя лаборатория: заявки на анализы, приём результатов по API")
+System_Ext(onec, "1С: Бухгалтерия", "Учёт платежей, ККМ, кадры")
+
+' ============== RELATIONSHIPS ==============
+Rel(patient, auth, "Authenticates\n(login, 2FA/MFA)", "HTTPS")
+Rel(auth, core, "Authenticated\nrequests", "HTTPS/tokens")
+Rel(patient, consent, "Manages consent,\nviews policy")
+Rel(staff, auth, "Authenticates\n(login, 2FA/MFA)", "HTTPS")
+Rel(auth, consent, "Checks consent\n(patient context)")
+Rel(analyst, analytics, "Builds reports,\nBI, ML", "Only de-identified data")
+
+Rel(core, consent, "Checks consent\nbefore processing")
+Rel(core, classification, "Tags on write,\npolicy on read/export")
+Rel(core, audit, "Sends access/CRUD logs")
+Rel(core, lab, "Orders, receives results", "API/TLS")
+Rel(core, onec, "Payment data", "TLS/API")
+
+Rel(analytics, core, "Receives anonymized/\naggregated data only")
+Rel(analytics, classification, "Validates tags\non ingestion")
+Rel(analytics, audit, "Sends access logs")
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+
+@enduml

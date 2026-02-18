@@ -1,0 +1,45 @@
+@startuml Task1-DFD-3-Examination
+!theme plain
+title DFD: Проведение осмотра/диагностики в клинике (Examination/Diagnosis)
+
+skinparam defaultFontSize 11
+skinparam rectangle {
+  roundCorner 12
+  backgroundColor #E8F4FD
+}
+skinparam database {
+  backgroundColor #FFF4E6
+}
+
+actor "Пациент\n(Patient)" as Patient
+actor "Доктор\n(doctor)" as Doctor
+
+rectangle "3.0\Идентифицировать по записи \nпациента" as P0 #E8F4FD
+rectangle "3.1\nОткрыть данные\nпациента" as P1 #E8F4FD
+rectangle "3.2\nПровести осмотр,\nобновить данные" as P2 #E8F4FD
+rectangle "3.3\nПросмотреть результаты\nанализов" as P3 #E8F4FD
+
+database "journals/\ndoctor-FIO\n(запись к доктору)" as D0
+database "patients/\npacient-FIO-BD\n(медкарта, файлы)" as D1
+database "laboratory/\nDATE\n(результаты по дате)" as D2
+
+Patient --> Doctor : приход на осмотр \nФИО, дата рождения\n(для иденификации)
+
+Doctor --> P0: ФИО, дата рождения
+P0 --> D0: просмотреть записи
+D0 --> P0: записи с идентификацией пациента (ФИО, дата рождения)
+
+P0 --> P1 : ФИО пациента
+P1 --> D1 : открыть папку\nпациента
+D1 --> P1 : история, диагнозы,\nпредыдущие осмотры
+
+P2 --> D1 : обновить данные\nпосле осмотра
+P2 --> D0: обновить отметку \nо состоявшейся записи
+
+P3 --> D2 : открыть папку\nпо дате
+D2 --> P3 : результаты\nанализов пациента
+
+P1 --> P2 : данные пациента
+P2 --> P3 : при необходимости\nрезультаты анализов
+
+@enduml
